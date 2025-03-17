@@ -26,6 +26,10 @@ class Client(commands.Bot):
                 os.getenv('DB_HOST'),
                 os.getenv('DB_PORT')
             )
+
+            guild = discord.Object(id=os.getenv('GUILD_ID'))
+            synced = await self.tree.sync(guild=guild)
+            print(f"Synced {len(synced)} commands")
         except Exception as e:
             traceback.print_exc()
             return
@@ -56,12 +60,14 @@ class Client(commands.Bot):
             
             timestamp = message[1]
             tag = converter_utils.convert_to_tag(timestamp)
-            await reaction.message.channel.send(tag)
+            await reaction.message.reply(tag, mention_author=False)
 
         
 intents = discord.Intents.default()
 intents.message_content = True
 client = Client(command_prefix='!', intents=intents)
+
+GUILD_ID = discord.Object(id=os.getenv('GUILD_ID'))
 
 @client.tree.command(name='set-me', description='Set your timezone')
 async def set_me(interaction: discord.Interaction, timezone: str):
@@ -73,7 +79,7 @@ async def set_me(interaction: discord.Interaction, timezone: str):
     client.db_connection.insert_user(interaction.user.id, timezone)
     await interaction.response.send_message(f'Timezone set to {timezone}', ephemeral=True)
 
-@client.tree.command(name='remove-me', description='Remove your timezone')
+@client.tree.command(name='remove-me', description='Remove your timezone', guild=GUILD_ID)
 async def remove_me(interaction: discord.Interaction):
     client.db_connection.delete_user(interaction.user.id)
     await interaction.response.send_message('Timezone removed', ephemeral=True)

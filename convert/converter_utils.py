@@ -1,52 +1,43 @@
 import re 
 from datetime import datetime, timedelta, timezone
+import pytz
 
-TIME_24H = re.compile(r"\b([01]?[0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9])\b")  # HH:MM:SS
-TIME_24H_SHORT = re.compile(r"\b([01]?[0-9]|2[0-3]):([0-5][0-9])\b")  # HH:MM
-TIME_HOUR_ONLY = re.compile(r"\b([01]?[0-9]|2[0-3])\b")  # HH only
-TIME_12H = re.compile(r"\b(1[0-2]|0?[1-9])(:[0-5][0-9])?\s?(AM|PM|am|pm)\b")  # HH AM/PM
-RELATIVE_FUTURE = re.compile(r"\bin\s([1-9]|1[0-9]|2[0-3])\s?hours?\b")  # in X hours
-RELATIVE_PAST = re.compile(r"\b([1-9]|1[0-9]|2[0-3])\s?hours?\sago\b")  # X hours ago
-
-def parse_timezone(tz_string):
-    pattern = r"UTC([+-]\d+)?"
-    match = re.match(pattern, tz_string)
-    
-    if not match:
-        raise ValueError(f"Invalid timezone format: {tz_string}")
-    
-    offset_str = match.group(1)
-    if offset_str is None:
-        return timezone.utc
-    
-    offset_hours = int(offset_str)
-    offset_seconds = offset_hours * 3600
-    return timezone(timedelta(seconds=offset_seconds))
+# HH:MM (24-hour format, 0-23h)
+TIME_24H_SHORT = re.compile(r"\b([01]?[0-9]|2[0-3]):([0-5][0-9])\b")  
+# HH only (0-23h)
+TIME_HOUR_ONLY = re.compile(r"\b([01]?[0-9]|2[0-3])\b")  
+# HH:MM AM/PM or HH AM/PM (12-hour format, case-insensitive)
+TIME_12H = re.compile(r"\b(1[0-2]|0?[1-9])(:[0-5][0-9])?\s?(AM|PM|am|pm)\b")  
+# Relative time: "in X hours", "in X minutes", "in Xh", "in X min"
+RELATIVE_FUTURE = re.compile(r"\bin\s(\d{1,2})\s?(h|hours?|m|min|minutes?)\b", re.IGNORECASE)
+# Relative time: "X hours ago", "X minutes ago", "Xh ago", "X min ago"
+RELATIVE_PAST = re.compile(r"\b(\d{1,2})\s?(h|hours?|m|min|minutes?)\sago\b", re.IGNORECASE)
 
 def parse_message(message: str, tz_string: str) -> int:
-    timezone = parse_timezone(tz_string)
-    
+    timezone = pytz.timezone(tz_string)
     now = datetime.now(timezone)
-    
-    # Match absolute time (HH:MM:SS)
-    if match := TIME_24H.search(message):
-        hours, minutes, seconds = map(int, match.groups())
-        target_time = now.replace(hour=hours, minute=minutes, second=seconds, microsecond=0)
+
+    # Match 'in X hours/minutes', 'in Xh', 'in X min'
+    if match := RELATIVE_FUTURE.search(message):
+        amount, unit = match.groups()
+        amount = int(amount)
+        if unit.startswith("h"):  # hours
+            target_time = now + timedelta(hours=amount)
+        else:  # minutes
+            target_time = now + timedelta(minutes=amount)
+        return int(target_time.timestamp())
+
+    # Match 'X hours/minutes ago', 'Xh ago', 'X min ago'
+    if match := RELATIVE_PAST.search(message):
+        amount, unit = match.groups()
+        amount = int(amount)
+        if unit.startswith("h"):  # hours
+            target_time = now - timedelta(hours=amount)
+        else:  # minutes
+            target_time = now - timedelta(minutes=amount)
         return int(target_time.timestamp())
     
-    # Match absolute time (HH:MM)
-    if match := TIME_24H_SHORT.search(message):
-        hours, minutes = map(int, match.groups())
-        target_time = now.replace(hour=hours, minute=minutes, second=0, microsecond=0)
-        return int(target_time.timestamp())
-    
-    # Match absolute time (HH only)
-    if match := TIME_HOUR_ONLY.search(message):
-        hours = int(match.group(1))
-        target_time = now.replace(hour=hours, minute=0, second=0, microsecond=0)
-        return int(target_time.timestamp())
-    
-    # Match 12-hour format
+    # Match 12-hour format (HH AM/PM or HH:MM AM/PM)
     if match := TIME_12H.search(message):
         hours, minutes, period = match.groups()
         hours = int(hours)
@@ -58,24 +49,22 @@ def parse_message(message: str, tz_string: str) -> int:
         target_time = now.replace(hour=hours, minute=minutes, second=0, microsecond=0)
         return int(target_time.timestamp())
     
-    # Match 'in X hours'
-    if match := RELATIVE_FUTURE.search(message):
-        hours = int(match.group(1))
-        target_time = now + timedelta(hours=hours)
+    # Match absolute time (HH:MM in 24-hour format)
+    if match := TIME_24H_SHORT.search(message):
+        hours, minutes = map(int, match.groups())
+        target_time = now.replace(hour=hours, minute=minutes, second=0, microsecond=0)
         return int(target_time.timestamp())
-    
-    # Match 'X hours ago'
-    if match := RELATIVE_PAST.search(message):
+
+    # Match absolute time (HH only)
+    if match := TIME_HOUR_ONLY.search(message):
         hours = int(match.group(1))
-        target_time = now - timedelta(hours=hours)
+        target_time = now.replace(hour=hours, minute=0, second=0, microsecond=0)
         return int(target_time.timestamp())
-    
-    return -1   
+
+    return -1 
 
 def convert_to_tag(timestamp: int) -> str:
     return f"<t:{timestamp}:F>"
 
-# check if the set timezone is a valid format (UTC+/-X)
 def verify_timezone(timezone: str) -> bool:
-    return re.match(r"UTC([+-]\d+)?", timezone) is not None
-    
+    return timezone in pytz.all_timezones_set
