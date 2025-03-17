@@ -72,10 +72,10 @@ def parse_message(message: str, tz_string: str) -> int:
     
     return -1   
 
-def convert_to_tag(self, timestamp: int) -> str:
+def convert_to_tag(timestamp: int) -> str:
     return f"<t:{timestamp}:F>"
 
 # check if the set timezone is a valid format (UTC+/-X)
-def verify_timezone(self, timezone: str) -> bool:
+def verify_timezone(timezone: str) -> bool:
     return re.match(r"UTC([+-]\d+)?", timezone) is not None
     
