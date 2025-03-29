@@ -4,8 +4,8 @@ import pytz
 
 # HH:MM (24-hour format, 0-23h)
 TIME_24H_SHORT = re.compile(r"\b([01]?[0-9]|2[0-3]):([0-5][0-9])\b")  
-# HH only (0-23h)
-TIME_HOUR_ONLY = re.compile(r"\b([01]?[0-9]|2[0-3])\b")  
+# "at HH" only (0-23h)
+TIME_HOUR_ONLY = re.compile(r"\bat\s([01]?[0-9]|2[0-3])\b", re.IGNORECASE)
 # HH:MM AM/PM or HH AM/PM (12-hour format, case-insensitive)
 TIME_12H = re.compile(r"\b(1[0-2]|0?[1-9])(:[0-5][0-9])?\s?(AM|PM|am|pm)\b")  
 # Relative time: "in X hours", "in X minutes", "in Xh", "in X min"
