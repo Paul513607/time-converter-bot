@@ -27,10 +27,10 @@ class Client(commands.Bot):
                 os.getenv('DB_PORT')
             )
 
-            guild = discord.Object(id=os.getenv('GUILD_ID'))
+            # guild = discord.Object(id=os.getenv('GUILD_ID'))
 
             self.tree.add_command(convert_to_timestamp)
-            synced = await self.tree.sync(guild=guild)
+            synced = await self.tree.sync()
             print(f"Synced {len(synced)} commands")
         except Exception as e:
             traceback.print_exc()
@@ -42,8 +42,8 @@ intents = discord.Intents.default()
 intents.message_content = True
 client = Client(command_prefix='!', intents=intents)
 
-# GUILD_ID = None 
-GUILD_ID = discord.Object(id=os.getenv('GUILD_ID'))
+GUILD_ID = None 
+# GUILD_ID = discord.Object(id=os.getenv('GUILD_ID'))
 
 @client.tree.command(name='set-me', description='Set your timezone', guild=GUILD_ID)
 async def set_me(interaction: discord.Interaction, timezone: str):
@@ -77,7 +77,7 @@ What will the bot detect?
     await interaction.response.send_message(message, ephemeral=True)
 
 @app_commands.context_menu(name="Convert to Timestamp")
-@app_commands.guilds(GUILD_ID)
+# @app_commands.guilds(GUILD_ID)
 async def convert_to_timestamp(interaction: discord.Interaction, message: discord.Message):
     if message.author == client.user:
         return
