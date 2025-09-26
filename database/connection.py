@@ -62,22 +62,4 @@ class Connection:
         cursor.execute("DELETE FROM user_timezone WHERE user_id = %s", (user_id,))
         self.connection.commit()
         cursor.close()
-
-    def insert_message(self, message_id: int, timestamp: int):
-        cursor = self.connection.cursor()
-        cursor.execute("INSERT INTO message_id_timestamp (message_id, timestamp) VALUES (%s, %s)", (message_id, timestamp))
-        self.connection.commit()
-        cursor.close()
-
-    def get_message(self, message_id: int):
-        cursor = self.connection.cursor()
-        cursor.execute("SELECT * FROM message_id_timestamp WHERE message_id = %s", (message_id,))
-        message = cursor.fetchone()
-        cursor.close()
-        return message
-    
-    def delete_message(self, message_id: int):
-        cursor = self.connection.cursor()
-        cursor.execute("DELETE FROM message_id_timestamp WHERE message_id = %s", (message_id,))
-        self.connection.commit()
-        cursor.close()
+        

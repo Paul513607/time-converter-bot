@@ -38,17 +38,6 @@ class Client(commands.Bot):
 
         print(f'Logged on as {self.user}!')
 
-    async def on_message(self, message): 
-        if message.author == self.user:
-            return
-        user = self.db_connection.get_user(message.author.id)
-        if user is None:
-            return
-        user_timezone_str = user[1]
-        timestamp = converter_utils.parse_message(message.content, user_timezone_str)
-        if timestamp != -1:
-            self.db_connection.insert_message(message.id, timestamp)
-
 intents = discord.Intents.default()
 intents.message_content = True
 client = Client(command_prefix='!', intents=intents)
@@ -90,12 +79,19 @@ What will the bot detect?
 @app_commands.context_menu(name="Convert to Timestamp")
 @app_commands.guilds(GUILD_ID)
 async def convert_to_timestamp(interaction: discord.Interaction, message: discord.Message):
-    message = client.db_connection.get_message(message.id)
-    if message is None:
-        await interaction.response.send_message("Message not found.", ephemeral=True)
+    if message.author == client.user:
         return
-    
-    timestamp = message[1]
+    user = client.db_connection.get_user(message.author.id)
+    if user is None:
+        await interaction.response.send_message("This user's timezone is unknown", ephemeral=True)
+        return
+    user_timezone_str = user[1]
+    timestamp = converter_utils.parse_message(message.content, user_timezone_str)
+
+    if timestamp == -1:
+        await interaction.response.send_message("Could not parse message", ephemeral=True)
+        return
+
     tag = converter_utils.convert_to_tag(timestamp)
     await interaction.response.send_message(tag, ephemeral=True)
 
