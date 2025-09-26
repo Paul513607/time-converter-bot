@@ -48,7 +48,7 @@ GUILD_ID = None
 @client.tree.command(name='set-me', description='Set your timezone', guild=GUILD_ID)
 async def set_me(interaction: discord.Interaction, timezone: str):
     if (not converter_utils.verify_timezone(timezone)):
-        await interaction.response.send_message('Invalid timezone format. Please use UTC+/-X', ephemeral=True)
+        await interaction.response.send_message('Invalid timezone format. Example Europe/London', ephemeral=True)
         return
     if (client.db_connection.get_user(interaction.user.id) is not None):
         client.db_connection.delete_user(interaction.user.id)
